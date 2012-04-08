@@ -125,6 +125,7 @@ public final class ByteUtils {
         if (memcachedProtocol == Protocol.Text || testing) {
             for (byte b : keyBytes) {
                 if (b == ' ' || b == '\n' || b == '\r' || b == 0) {
+                	System.out.println("Invalid character is " + (char)b);
                     try {
                         throw new IllegalArgumentException("Key contains invalid characters:  "
                                 + new String(keyBytes, "utf-8"));
