@@ -79,6 +79,12 @@ public class ArrayMemcachedSessionLocator extends
 		return session;
 	}
 
+	public int findSessionNumByKey(final String key) {
+		List<List<Session>> sessionList = this.sessions;
+		int size = sessionList.size();
+		return (int)(this.getHash(size, key));
+	}
+	
 	private Session getRandomSession(List<Session> sessions) {
 		if (sessions == null || sessions.isEmpty())
 			return null;

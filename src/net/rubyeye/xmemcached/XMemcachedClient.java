@@ -1144,6 +1144,10 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     }
 
 
+    public int findServerNumByKey(final String key) {
+    	return this.sessionLocator.findSessionNumByKey(key);
+    }
+    
     @SuppressWarnings("unchecked")
     private <T> Map<String, T> reduceResult(final CommandType cmdType, final Transcoder<T> transcoder,
             final List<Command> commands) throws MemcachedException {

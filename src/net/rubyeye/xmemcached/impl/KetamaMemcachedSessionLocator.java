@@ -140,6 +140,10 @@ public class KetamaMemcachedSessionLocator extends
 		return sessionList;
 	}
 
+	public int findSessionNumByKey(final String key) {
+		return 0;
+	}
+	
 	public final Session getSessionByKey(final String key) {
 		if (this.ketamaSessions == null || this.ketamaSessions.size() == 0) {
 			return null;

@@ -45,4 +45,10 @@ public interface MemcachedSessionLocator {
 	 *            true is using failure mode
 	 */
 	public void setFailureMode(boolean failureMode);
+	
+	/**
+	 * @param key
+	 * @return Session number
+	 */
+	public int findSessionNumByKey(final String key);
 }

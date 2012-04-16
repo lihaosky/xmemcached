@@ -65,6 +65,10 @@ public class ElectionMemcachedSessionLocator extends
 		return result;
 	}
 
+	public int findSessionNumByKey(final String key) {
+		return 0;
+	}
+	
 	private Session getSessionByElection(String key,
 			List<Session> copySessionList) {
 		Session result = null;

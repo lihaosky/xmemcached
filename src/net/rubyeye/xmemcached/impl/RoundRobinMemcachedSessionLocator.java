@@ -48,6 +48,10 @@ public class RoundRobinMemcachedSessionLocator implements
 		this.sessions = newSessions;
 	}
 
+	public int findSessionNumByKey(final String key) {
+		return 0;
+	}
+	
 	public void setFailureMode(boolean failureMode) {
 		// ignore
 

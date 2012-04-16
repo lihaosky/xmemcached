@@ -52,6 +52,10 @@ public class PHPMemcacheSessionLocator extends
 		return hash % size;
 	}
 
+	public int findSessionNumByKey(final String key) {
+		return 0;
+	}
+	
 	public final Session getSessionByKey(final String key) {
 		if (this.sessions == null || this.sessions.size() == 0) {
 			return null;

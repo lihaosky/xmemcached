@@ -70,6 +70,10 @@ public class LibmemcachedMemcachedSessionLocator extends
 		this.maxTries = list.size();
 	}
 
+	public int findSessionNumByKey(final String key) {
+		return 0;
+	}
+	
 	private List<Session> getSessionList(
 			TreeMap<Long, List<Session>> sessionMap, long k) {
 		List<Session> sessionList = sessionMap.get(k);
