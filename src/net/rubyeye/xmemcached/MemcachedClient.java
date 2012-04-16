@@ -161,6 +161,8 @@ public interface MemcachedClient {
     public void addServer(final InetSocketAddress inetSocketAddress) throws IOException;
 
 
+    public int findServerNumByKey(final String key);
+    
     /**
      * Add many memcached servers.You can call this method through JMX or
      * program
