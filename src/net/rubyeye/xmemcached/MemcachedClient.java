@@ -61,7 +61,7 @@ public interface MemcachedClient {
      * Default operation timeout,if the operation is not returned in 1
      * second,throw TimeoutException
      */
-    public static final long DEFAULT_OP_TIMEOUT = 1000L;
+    public static final long DEFAULT_OP_TIMEOUT = 10000L;
     /**
      * With java nio,there is only one connection to a memcached.In a high
      * concurrent enviroment,you may want to pool memcached clients.But a

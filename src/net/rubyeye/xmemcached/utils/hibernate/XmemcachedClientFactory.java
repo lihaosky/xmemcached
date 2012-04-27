@@ -142,6 +142,7 @@ public class XmemcachedClientFactory implements MemcacheClientFactory {
     }
 
 	public long getOperationTimeoutMillis() {
+		//return MemcachedClient.DEFAULT_OP_TIMEOUT;
 		return this.properties.getLong(PROP_OPERATION_TIMEOUT,
 				MemcachedClient.DEFAULT_OP_TIMEOUT);
 	}

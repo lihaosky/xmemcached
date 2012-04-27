@@ -734,6 +734,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
 
 
     public XMemcachedClient() throws IOException {
+    	
         super();
         this.buildConnector(new ArrayMemcachedSessionLocator(), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
