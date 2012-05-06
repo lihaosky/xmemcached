@@ -42,23 +42,52 @@ public class ArrayMemcachedSessionLocator extends
 
 	private HashAlgorithm hashAlgorighm;
 	private transient volatile List<List<Session>> sessions;
+	
+	/**
+	 * Store key to multiple server mapping
+	 */
 	private volatile ConcurrentHashMap<String, Vector<String>> keyServerMap;
+	
+	/**
+	 * Store host to session mapping
+	 */
 	private volatile HashMap<String, List<Session>> hostSessionMap;
+	
+	/**
+	 * Thread to fetch mapping from controller
+	 */
 	private MapFetchThread mft;
+	
+	/**
+	 * Last session accessed. aka. Last server accessed!
+	 */
 	private int lastSessionIndex;
 	
-	public ArrayMemcachedSessionLocator(String controllerHostname, int controllerPort) {
+	/**
+	 * If start controller
+	 */
+	private boolean connectController = true;
+	
+	public ArrayMemcachedSessionLocator(String controllerHostname, int controllerPort, boolean connectController) {
 		this.hashAlgorighm = HashAlgorithm.NATIVE_HASH;
-		keyServerMap = new ConcurrentHashMap<String, Vector<String>>();
-		mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort);
-		mft.start();
+		this.connectController = connectController;
+		
+		if (connectController) {
+			keyServerMap = new ConcurrentHashMap<String, Vector<String>>();
+			mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort);
+			mft.start();
+		}
 	}
 
-	public ArrayMemcachedSessionLocator(HashAlgorithm hashAlgorighm, String controllerHostname, int controllerPort) {
+	public ArrayMemcachedSessionLocator(HashAlgorithm hashAlgorighm, String controllerHostname, int controllerPort, boolean connectController) {
 		this.hashAlgorighm = hashAlgorighm;
-		keyServerMap = new ConcurrentHashMap<String, Vector<String>>();
-		mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort);
-		mft.start();
+		this.connectController = connectController;
+		
+		if (connectController) {
+			keyServerMap = new ConcurrentHashMap<String, Vector<String>>();
+			mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort);
+			mft.start();
+		}
 	}
 	
 	public final void setHashAlgorighm(HashAlgorithm hashAlgorighm) {
@@ -72,6 +101,11 @@ public class ArrayMemcachedSessionLocator extends
 
 	final Random rand = new Random();
 
+	/**
+	 * Find session by key
+	 * If key presented in map, get session from map
+	 * Else pick session by hashing
+	 */
 	public final Session getSessionByKey(final String key) {
 		if (this.sessions == null || this.sessions.size() == 0) {
 			return null;
@@ -83,18 +117,23 @@ public class ArrayMemcachedSessionLocator extends
 			return null;
 		}
 		
-		Vector<String> hosts = keyServerMap.get(key);
-		
-		if (hosts != null) {
-			System.out.println("Found key in keyServerMap!");
+		if (this.connectController) {
+			Vector<String> hosts = keyServerMap.get(key);
 			
-			String hostname = hosts.get(rand.nextInt(hosts.size()));
-			List<Session> sessions = hostSessionMap.get(hostname);
-			lastSessionIndex = sessionList.indexOf(sessions);
-			
-			Session session = getRandomSession(sessions);
-			
-			return session;
+			/**
+			 * Map contains key, get host from map
+			 */
+			if (hosts != null) {
+				System.out.println("Found key in keyServerMap!");
+				
+				String hostname = hosts.get(rand.nextInt(hosts.size()));
+				List<Session> sessions = hostSessionMap.get(hostname);
+				lastSessionIndex = sessionList.indexOf(sessions);
+				
+				Session session = getRandomSession(sessions);
+				
+				return session;
+			}
 		}
 		
 		long start = this.getHash(size, key);
@@ -170,12 +209,19 @@ public class ArrayMemcachedSessionLocator extends
 
 		List<List<Session>> newSessions = new ArrayList<List<Session>>(
 				tmpList.size() * 2);
-		hostSessionMap = new HashMap<String, List<Session>>();
+		
+		if (this.connectController) {
+			hostSessionMap = new HashMap<String, List<Session>>();
+		}
 		
 		for (List<Session> sessions : tmpList) {
 			if (sessions != null && !sessions.isEmpty()) {
 				Session session = sessions.get(0);
-				hostSessionMap.put(session.getRemoteSocketAddress().getHostName(), sessions);
+				
+				if (this.connectController) {
+					hostSessionMap.put(session.getRemoteSocketAddress().getHostName(), sessions);
+				}
+				
 				if (session instanceof MemcachedTCPSession) {
 					int weight = ((MemcachedSession) session).getWeight();
 					for (int i = 0; i < weight; i++) {
@@ -190,13 +236,18 @@ public class ArrayMemcachedSessionLocator extends
 		this.sessions = newSessions;
 	}
 
-	@Override
+	/**
+	 * Stop map fetch thread if started
+	 */
 	public void stop() {
-		mft.halt();
-		
+		if (this.connectController) {
+			mft.halt();
+		}
 	}
 
-	@Override
+	/**
+	 * Get last accessed server index
+	 */
 	public int lastIndex() {
 		return lastSessionIndex;
 	}
@@ -261,9 +312,17 @@ class MapFetchThread extends Thread {
 		
 		while (!stop) {
 			try {
+				//Try to reconnect to controller!
+				if (s == null) {
+					s = new Socket(controllerHost, controllerPort);
+					br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+					dos = new DataOutputStream(s.getOutputStream());
+					System.out.println("Connected to controller!");
+				}
+				
 				//Send request
 				dos.write("2:\r\n".getBytes());
-				System.out.println("Request sent to controller!");
+				//System.out.println("Request sent to controller!");
 				
 				//Read mapping
 				String line = null;
@@ -281,12 +340,31 @@ class MapFetchThread extends Thread {
 					
 					keyServerMap.put(tokens[0], IPVector);
 				}
-				System.out.println("Mapping received!");
-				
+				//System.out.println("Mapping received!");
+				System.out.println("This mapping is:");
+				for (String key : keyServerMap.keySet()) {
+					System.out.print(key + ": ");
+					for (String ip : keyServerMap.get(key)) {
+						System.out.print(ip + ",");
+					}
+					System.out.println();
+				}
 			} catch (IOException e) {
 				System.err.println("Error in writing to controller!");
-				e.printStackTrace();
-				System.exit(1);
+				System.err.println("Try to reconnect to controller in 5 seconds!");
+				try {
+					s.close();
+				} catch (IOException e1) {
+				}
+				s = null;
+			} catch (Exception e) {
+				System.err.println("Error in writing to controller!");
+				System.err.println("Try to reconnect to controller in 5 seconds!");
+				try {
+					s.close();
+				} catch (IOException e1) {
+				}
+				s = null;
 			}
 			
 			/**

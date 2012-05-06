@@ -90,7 +90,7 @@ public class XmemcachedClientFactory implements MemcacheClientFactory {
 
 	protected MemcachedSessionLocator getSessionLocator() {
 		if (sessionLocatorNameEquals(ArrayMemcachedSessionLocator.class)) {
-			return new ArrayMemcachedSessionLocator(getHashAlgorithm(), "localhost", 1234);
+			return new ArrayMemcachedSessionLocator(getHashAlgorithm(), "localhost", 1234, false);
 		}
 
 		if (sessionLocatorNameEquals(KetamaMemcachedSessionLocator.class)) {

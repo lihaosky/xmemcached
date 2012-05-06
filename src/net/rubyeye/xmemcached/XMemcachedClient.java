@@ -306,7 +306,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             throw new IllegalArgumentException("weight<=0");
         }
         this.checkServerPort(host, port);
-        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort), new SimpleBufferAllocator(),
+        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort, true), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -632,7 +632,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             Configuration configuration, Map<SocketOption, Object> socketOptions, CommandFactory commandFactory,
             Transcoder transcoder) {
         if (locator == null) {
-            locator = new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort);
+            locator = new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort, false);
 
         }
         if (bufferAllocator == null) {
@@ -725,7 +725,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         if (weight <= 0) {
             throw new IllegalArgumentException("weight<=0");
         }
-        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort), new SimpleBufferAllocator(),
+        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort, false), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -739,12 +739,12 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     }
 
 
-    public XMemcachedClient(String controllerHostname, int controllerPort, boolean dummy) throws IOException {
+    public XMemcachedClient(String controllerHostname, int controllerPort, boolean connectController) throws IOException {
     	
         super();
         this.controllerHostname = controllerHostname;
         this.controllerPort = controllerPort;
-        this.buildConnector(new ArrayMemcachedSessionLocator(controllerHostname, controllerPort), new SimpleBufferAllocator(),
+        this.buildConnector(new ArrayMemcachedSessionLocator(controllerHostname, controllerPort, connectController), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -898,7 +898,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             throw new IllegalArgumentException("Empty address list");
         }
         BufferAllocator simpleBufferAllocator = new SimpleBufferAllocator();
-        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort), simpleBufferAllocator,
+        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort, false), simpleBufferAllocator,
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();

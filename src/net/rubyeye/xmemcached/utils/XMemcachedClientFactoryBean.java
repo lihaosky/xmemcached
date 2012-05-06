@@ -53,7 +53,7 @@ import com.google.code.yanf4j.config.Configuration;
  */
 public class XMemcachedClientFactoryBean implements FactoryBean {
 
-	private MemcachedSessionLocator sessionLocator = new ArrayMemcachedSessionLocator("localhost", 1234);
+	private MemcachedSessionLocator sessionLocator = new ArrayMemcachedSessionLocator("localhost", 1234, false);
 	private BufferAllocator bufferAllocator = new SimpleBufferAllocator();
 	private String servers;
 	private List<Integer> weights;
