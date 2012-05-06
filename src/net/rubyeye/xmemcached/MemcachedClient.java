@@ -138,6 +138,7 @@ public interface MemcachedClient {
      */
     public boolean isShutdown();
 
+    public int lastIndex();
 
     /**
      * Aadd a memcached server,the thread call this method will be blocked until

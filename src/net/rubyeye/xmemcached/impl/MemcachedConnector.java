@@ -314,7 +314,7 @@ public class MemcachedConnector extends SocketChannelController implements Conne
 
     public final void updateSessions() {
         Collection<Queue<Session>> sessionCollection = this.sessionMap.values();
-        List<Session> sessionList = new ArrayList<Session>(20);
+        List<Session> sessionList = new ArrayList<Session>(20); 
         for (Queue<Session> sessions : sessionCollection) {
             sessionList.addAll(sessions);
         }

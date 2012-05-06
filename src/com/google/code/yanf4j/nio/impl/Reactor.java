@@ -139,7 +139,11 @@ public final class Reactor extends Thread {
 			try {
 				postSelect(selectedKeys, selector.keys());
 				dispatchEvent(selectedKeys);
-			} finally {
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println(e.getMessage());
+			}
+			finally {
 				gate.unlock();
 			}
 		}

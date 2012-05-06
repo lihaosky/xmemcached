@@ -96,7 +96,9 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     private long opTimeout = DEFAULT_OP_TIMEOUT;
     private long connectTimeout = DEFAULT_CONNECT_TIMEOUT; // 杩��瓒��
     protected int connectionPoolSize = DEFAULT_CONNECTION_POOL_SIZE;
-
+    private String controllerHostname;
+    private int controllerPort;
+    
     protected final AtomicInteger serverOrderCount = new AtomicInteger();
 
     private Map<InetSocketAddress, AuthInfo> authInfoMap = new HashMap<InetSocketAddress, AuthInfo>();
@@ -154,6 +156,10 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     }
 
 
+    public int lastIndex() {
+    	return this.sessionLocator.lastIndex();
+    }
+    
     /*
      * (non-Javadoc)
      * 
@@ -300,7 +306,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             throw new IllegalArgumentException("weight<=0");
         }
         this.checkServerPort(host, port);
-        this.buildConnector(new ArrayMemcachedSessionLocator(), new SimpleBufferAllocator(),
+        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -626,7 +632,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             Configuration configuration, Map<SocketOption, Object> socketOptions, CommandFactory commandFactory,
             Transcoder transcoder) {
         if (locator == null) {
-            locator = new ArrayMemcachedSessionLocator();
+            locator = new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort);
 
         }
         if (bufferAllocator == null) {
@@ -719,7 +725,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         if (weight <= 0) {
             throw new IllegalArgumentException("weight<=0");
         }
-        this.buildConnector(new ArrayMemcachedSessionLocator(), new SimpleBufferAllocator(),
+        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -733,10 +739,12 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     }
 
 
-    public XMemcachedClient() throws IOException {
+    public XMemcachedClient(String controllerHostname, int controllerPort, boolean dummy) throws IOException {
     	
         super();
-        this.buildConnector(new ArrayMemcachedSessionLocator(), new SimpleBufferAllocator(),
+        this.controllerHostname = controllerHostname;
+        this.controllerPort = controllerPort;
+        this.buildConnector(new ArrayMemcachedSessionLocator(controllerHostname, controllerPort), new SimpleBufferAllocator(),
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -890,7 +898,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             throw new IllegalArgumentException("Empty address list");
         }
         BufferAllocator simpleBufferAllocator = new SimpleBufferAllocator();
-        this.buildConnector(new ArrayMemcachedSessionLocator(), simpleBufferAllocator,
+        this.buildConnector(new ArrayMemcachedSessionLocator(this.controllerHostname, this.controllerPort), simpleBufferAllocator,
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
@@ -2402,6 +2410,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         this.connector.quitAllSessions();
         this.connector.stop();
         this.memcachedHandler.stop();
+        this.sessionLocator.stop();
         XMemcachedMbeanServer.getInstance().shutdown();
         if (!isHutdownHookCalled) {
             Runtime.getRuntime().removeShutdownHook(shutdownHookThread);

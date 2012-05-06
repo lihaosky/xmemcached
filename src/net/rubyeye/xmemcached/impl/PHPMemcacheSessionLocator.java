@@ -103,4 +103,16 @@ public class PHPMemcacheSessionLocator extends
 		}
 		this.sessions = newSessions;
 	}
+
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int lastIndex() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

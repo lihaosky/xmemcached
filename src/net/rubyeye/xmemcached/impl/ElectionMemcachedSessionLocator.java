@@ -104,4 +104,16 @@ public class ElectionMemcachedSessionLocator extends
 		this.sessions = new ArrayList<Session>(list);
 	}
 
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int lastIndex() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

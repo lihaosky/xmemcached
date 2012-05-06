@@ -140,4 +140,16 @@ public class LibmemcachedMemcachedSessionLocator extends
 	public final void updateSessions(final Collection<Session> list) {
 		this.buildMap(list, null);
 	}
+
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int lastIndex() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

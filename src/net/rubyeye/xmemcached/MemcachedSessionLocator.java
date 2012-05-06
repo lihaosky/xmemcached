@@ -12,6 +12,8 @@
 package net.rubyeye.xmemcached;
 
 import java.util.Collection;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.code.yanf4j.core.Session;
 
@@ -51,4 +53,8 @@ public interface MemcachedSessionLocator {
 	 * @return Session number
 	 */
 	public int findSessionNumByKey(final String key);
+	
+	public void stop();
+	
+	public int lastIndex();
 }
