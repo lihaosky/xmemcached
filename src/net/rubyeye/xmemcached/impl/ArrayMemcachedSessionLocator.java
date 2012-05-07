@@ -143,7 +143,7 @@ public class ArrayMemcachedSessionLocator extends
 			 * Map contains key, get host from map
 			 */
 			if (hosts != null) {
-				System.out.println("Found key in keyServerMap!");
+				//System.out.println("Found key in keyServerMap!");
 				
 				if (this.policy.equals(ArrayMemcachedSessionLocator.RANDOM)) {
 					String hostname = hosts.get(rand.nextInt(hosts.size()));
@@ -159,22 +159,35 @@ public class ArrayMemcachedSessionLocator extends
 				if (this.policy.equals(ArrayMemcachedSessionLocator.ROUND_ROBIN)) {
 					Integer lastAccessedServer = keyAccessMap.get(key);
 					String hostname = null;
-					int nextIndex = 0;
 					
 					if (lastAccessedServer == null) {
-						nextIndex = 0;
+						lastAccessedServer = 0;
 						hostname = hosts.get(0);
 					} else {
-						nextIndex = (lastAccessedServer + 1) % hosts.size();
-						hostname = hosts.get(nextIndex);	
+						int nextIndex = (lastAccessedServer + 1) % hosts.size();
+						hostname = hosts.get(nextIndex);
+						lastAccessedServer = nextIndex;
+					}
+					
+					//System.out.println("Selected host is " + hostname);
+					
+					try {
+						Thread.sleep(2);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
 					}
 					
 					List<Session> sessions = hostSessionMap.get(hostname);
+					
+					if (sessions == null) {
+						System.out.println("This shouldn't be null!");
+					}
+					
 					lastSessionIndex = sessionList.indexOf(sessions);
 					
 					Session session = getRandomSession(sessions);
 					if (session != null) {
-						keyAccessMap.put(key, nextIndex);
+						keyAccessMap.put(key, lastAccessedServer);
 						return session;
 					}
 				}
@@ -264,7 +277,7 @@ public class ArrayMemcachedSessionLocator extends
 				Session session = sessions.get(0);
 				
 				if (this.connectController) {
-					hostSessionMap.put(session.getRemoteSocketAddress().getHostName(), sessions);
+					hostSessionMap.put(session.getRemoteSocketAddress().getAddress().getHostAddress(), sessions);
 				}
 				
 				if (session instanceof MemcachedTCPSession) {
@@ -392,14 +405,15 @@ class MapFetchThread extends Thread {
 					keyServerMap.put(tokens[0].trim(), IPVector);
 				}
 				//System.out.println("Mapping received!");
-				System.out.println("This mapping is:");
+				/*System.out.println("This mapping is:");
 				for (String key : keyServerMap.keySet()) {
 					System.out.print(key + ": ");
 					for (String ip : keyServerMap.get(key)) {
 						System.out.print(ip + ",");
 					}
 					System.out.println();
-				}
+				}*/
+				
 			} catch (IOException e) {
 				System.err.println("Error in writing to controller!");
 				System.err.println("Try to reconnect to controller in "+ interval + " seconds!");
