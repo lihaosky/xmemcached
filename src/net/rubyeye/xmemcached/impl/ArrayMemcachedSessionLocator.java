@@ -354,7 +354,7 @@ class MapFetchThread extends Thread {
 				System.err.println("Try to reconnect to controller in 5 seconds!");
 				try {
 					s.close();
-				} catch (IOException e1) {
+				} catch (Exception e1) {
 				}
 				s = null;
 			} catch (Exception e) {
