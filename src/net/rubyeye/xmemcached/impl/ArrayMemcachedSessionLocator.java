@@ -40,6 +40,9 @@ import com.google.code.yanf4j.core.Session;
 public class ArrayMemcachedSessionLocator extends
 		AbstractMemcachedSessionLocator {
 
+	public static final String ROUND_ROBIN = "round";
+	public static final String RANDOM = "random";
+	
 	private HashAlgorithm hashAlgorighm;
 	private transient volatile List<List<Session>> sessions;
 	
@@ -52,6 +55,11 @@ public class ArrayMemcachedSessionLocator extends
 	 * Store host to session mapping
 	 */
 	private volatile HashMap<String, List<Session>> hostSessionMap;
+	
+	/**
+	 * Store key to last accessed server mapping
+	 */
+	private HashMap<String, Integer> keyAccessMap;
 	
 	/**
 	 * Thread to fetch mapping from controller
@@ -68,24 +76,35 @@ public class ArrayMemcachedSessionLocator extends
 	 */
 	private boolean connectController = true;
 	
-	public ArrayMemcachedSessionLocator(String controllerHostname, int controllerPort, boolean connectController) {
+	/**
+	 * Policy: random or round robin
+	 */
+	private String policy;
+	
+	public ArrayMemcachedSessionLocator(String controllerHostname, int controllerPort, boolean connectController, String policy, int interval) {
 		this.hashAlgorighm = HashAlgorithm.NATIVE_HASH;
 		this.connectController = connectController;
 		
 		if (connectController) {
 			keyServerMap = new ConcurrentHashMap<String, Vector<String>>();
-			mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort);
+			keyAccessMap = new HashMap<String, Integer>();
+			this.policy = policy;
+			
+			mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort, interval);
 			mft.start();
 		}
 	}
 
-	public ArrayMemcachedSessionLocator(HashAlgorithm hashAlgorighm, String controllerHostname, int controllerPort, boolean connectController) {
+	public ArrayMemcachedSessionLocator(HashAlgorithm hashAlgorighm, String controllerHostname, int controllerPort, boolean connectController, String policy, int interval) {
 		this.hashAlgorighm = hashAlgorighm;
 		this.connectController = connectController;
 		
 		if (connectController) {
 			keyServerMap = new ConcurrentHashMap<String, Vector<String>>();
-			mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort);
+			keyAccessMap = new HashMap<String, Integer>();
+			this.policy = policy;
+			
+			mft = new MapFetchThread(keyServerMap, controllerHostname, controllerPort, interval);
 			mft.start();
 		}
 	}
@@ -126,13 +145,40 @@ public class ArrayMemcachedSessionLocator extends
 			if (hosts != null) {
 				System.out.println("Found key in keyServerMap!");
 				
-				String hostname = hosts.get(rand.nextInt(hosts.size()));
-				List<Session> sessions = hostSessionMap.get(hostname);
-				lastSessionIndex = sessionList.indexOf(sessions);
+				if (this.policy.equals(this.RANDOM)) {
+					String hostname = hosts.get(rand.nextInt(hosts.size()));
+					List<Session> sessions = hostSessionMap.get(hostname);
+					lastSessionIndex = sessionList.indexOf(sessions);
+		
+					Session session = getRandomSession(sessions);
+					if (session != null) {
+						return session;
+					}
+				}
 				
-				Session session = getRandomSession(sessions);
-				
-				return session;
+				if (this.policy.equals(this.ROUND_ROBIN)) {
+					Integer lastAccessedServer = keyAccessMap.get(key);
+					String hostname = null;
+					int nextIndex = 0;
+					
+					if (lastAccessedServer == null) {
+						nextIndex = 0;
+						hostname = hosts.get(0);
+						List<Session> sessions = hostSessionMap.get(hostname);
+					} else {
+						nextIndex = (lastAccessedServer + 1) % hosts.size();
+						hostname = hosts.get(nextIndex);	
+					}
+					
+					List<Session> sessions = hostSessionMap.get(hostname);
+					lastSessionIndex = sessionList.indexOf(sessions);
+					
+					Session session = getRandomSession(sessions);
+					if (session != null) {
+						keyAccessMap.put(key, nextIndex);
+						return session;
+					}
+				}
 			}
 		}
 		
@@ -276,6 +322,10 @@ class MapFetchThread extends Thread {
 	 * Should the thread be stopped
 	 */
 	private boolean stop = false;
+	/**
+	 * Interval to pull map
+	 */
+	private int interval = 5;
 	
 	/**
 	 * Constructor
@@ -283,10 +333,11 @@ class MapFetchThread extends Thread {
 	 * @param controllerHost Controller host name
 	 * @param controllerPort Controller port number
 	 */
-	public MapFetchThread(ConcurrentHashMap<String, Vector<String>> keyServerMap, String controllerHost, int controllerPort) {
+	public MapFetchThread(ConcurrentHashMap<String, Vector<String>> keyServerMap, String controllerHost, int controllerPort, int interval) {
 		this.keyServerMap = keyServerMap;
 		this.controllerHost = controllerHost;
 		this.controllerPort = controllerPort;
+		this.interval = interval;
 	}
 	
 	public void run() {
@@ -351,7 +402,7 @@ class MapFetchThread extends Thread {
 				}
 			} catch (IOException e) {
 				System.err.println("Error in writing to controller!");
-				System.err.println("Try to reconnect to controller in 5 seconds!");
+				System.err.println("Try to reconnect to controller in "+ interval + " seconds!");
 				try {
 					s.close();
 				} catch (Exception e1) {
@@ -359,7 +410,7 @@ class MapFetchThread extends Thread {
 				s = null;
 			} catch (Exception e) {
 				System.err.println("Error in writing to controller!");
-				System.err.println("Try to reconnect to controller in 5 seconds!");
+				System.err.println("Try to reconnect to controller in " + interval + " seconds!");
 				try {
 					s.close();
 				} catch (IOException e1) {
@@ -371,7 +422,7 @@ class MapFetchThread extends Thread {
 			 * Wait for 5 seconds before next fetching request
 			 */
 			try {
-				Thread.sleep(5000);
+				Thread.sleep(interval * 1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

@@ -30,7 +30,7 @@ import com.google.code.yanf4j.core.impl.StandardSocketOption;
  */
 public class XMemcachedClientBuilder implements MemcachedClientBuilder {
 
-    private MemcachedSessionLocator sessionLocator = new ArrayMemcachedSessionLocator("localhost", 1234, false);
+    private MemcachedSessionLocator sessionLocator = new ArrayMemcachedSessionLocator("localhost", 1234, false, "random", 1);
     private BufferAllocator bufferAllocator = new SimpleBufferAllocator();
     private Configuration configuration = getDefaultConfiguration();
     private Map<InetSocketAddress, InetSocketAddress> addressMap =
