@@ -145,7 +145,7 @@ public class ArrayMemcachedSessionLocator extends
 			if (hosts != null) {
 				System.out.println("Found key in keyServerMap!");
 				
-				if (this.policy.equals(this.RANDOM)) {
+				if (this.policy.equals(ArrayMemcachedSessionLocator.RANDOM)) {
 					String hostname = hosts.get(rand.nextInt(hosts.size()));
 					List<Session> sessions = hostSessionMap.get(hostname);
 					lastSessionIndex = sessionList.indexOf(sessions);
@@ -156,7 +156,7 @@ public class ArrayMemcachedSessionLocator extends
 					}
 				}
 				
-				if (this.policy.equals(this.ROUND_ROBIN)) {
+				if (this.policy.equals(ArrayMemcachedSessionLocator.ROUND_ROBIN)) {
 					Integer lastAccessedServer = keyAccessMap.get(key);
 					String hostname = null;
 					int nextIndex = 0;
@@ -164,7 +164,6 @@ public class ArrayMemcachedSessionLocator extends
 					if (lastAccessedServer == null) {
 						nextIndex = 0;
 						hostname = hosts.get(0);
-						List<Session> sessions = hostSessionMap.get(hostname);
 					} else {
 						nextIndex = (lastAccessedServer + 1) % hosts.size();
 						hostname = hosts.get(nextIndex);	
@@ -381,15 +380,16 @@ class MapFetchThread extends Thread {
 					if (line.equals("")) {
 						break;
 					}
-					String[] tokens = line.split(":");
+					String[] tokens = line.split("\t");
 					String[] ips = tokens[1].split(",");
 					
 					Vector<String> IPVector = new Vector<String>();
 					for (String ip : ips) {
-						IPVector.add(ip);
+						String[] iphost = ip.split(":");
+						IPVector.add(iphost[0].trim());
 					}
 					
-					keyServerMap.put(tokens[0], IPVector);
+					keyServerMap.put(tokens[0].trim(), IPVector);
 				}
 				//System.out.println("Mapping received!");
 				System.out.println("This mapping is:");
