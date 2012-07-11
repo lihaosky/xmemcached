@@ -94,7 +94,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     private MemcachedHandler memcachedHandler;
     protected CommandFactory commandFactory;
     private long opTimeout = DEFAULT_OP_TIMEOUT;
-    private long connectTimeout = DEFAULT_CONNECT_TIMEOUT; // 杩��瓒��
+    private long connectTimeout = DEFAULT_CONNECT_TIMEOUT;
     protected int connectionPoolSize = DEFAULT_CONNECTION_POOL_SIZE;
     private String controllerHostname;
     private int controllerPort;
