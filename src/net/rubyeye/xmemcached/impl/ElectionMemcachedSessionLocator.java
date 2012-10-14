@@ -53,7 +53,7 @@ public class ElectionMemcachedSessionLocator extends
 		this.hashAlgorithm = hashAlgorithm;
 	}
 
-	public Session getSessionByKey(String key) {
+	public Session getSessionByKey(String key, boolean isSet) {
 		// copy on write
 		List<Session> copySessionList = new ArrayList<Session>(this.sessions);
 		Session result = this.getSessionByElection(key, copySessionList);

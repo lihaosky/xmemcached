@@ -30,7 +30,7 @@ public interface MemcachedSessionLocator {
 	 * @param key
 	 * @return
 	 */
-	public Session getSessionByKey(final String key);
+	public Session getSessionByKey(final String key, boolean isSet);
 
 	/**
 	 * Update sessions when session was added or removed.

@@ -468,8 +468,8 @@ public class MemcachedConnector extends SocketChannelController implements Conne
     private final Random random = new Random();
 
 
-    public void send(final Command msg) throws MemcachedException {
-        MemcachedSession session = (MemcachedSession) this.findSessionByKey(msg.getKey());
+    public void send(final Command msg, boolean isSet) throws MemcachedException {
+        MemcachedSession session = (MemcachedSession) this.findSessionByKey(msg.getKey(), isSet);
         if (session == null) {
             throw new MemcachedException("There is no available connection at this moment");
         }
@@ -546,8 +546,8 @@ public class MemcachedConnector extends SocketChannelController implements Conne
     }
 
 
-    public final Session findSessionByKey(String key) {
-        return this.sessionLocator.getSessionByKey(key);
+    public final Session findSessionByKey(String key, boolean isSet) {
+        return this.sessionLocator.getSessionByKey(key, isSet);
     }
 
 

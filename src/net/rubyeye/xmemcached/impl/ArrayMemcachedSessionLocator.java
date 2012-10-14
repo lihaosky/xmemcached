@@ -125,7 +125,7 @@ public class ArrayMemcachedSessionLocator extends
 	 * If key presented in map, get session from map
 	 * Else pick session by hashing
 	 */
-	public final Session getSessionByKey(final String key) {
+	public final Session getSessionByKey(final String key, boolean isSet) {
 		if (this.sessions == null || this.sessions.size() == 0) {
 			return null;
 		}

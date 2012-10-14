@@ -23,7 +23,7 @@ public class RoundRobinMemcachedSessionLocator implements
 	private transient volatile List<Session> sessions;
 	private AtomicInteger sets = new AtomicInteger(0);
 
-	public Session getSessionByKey(String key) {
+	public Session getSessionByKey(String key, boolean isSet) {
 		List<Session> copyList = this.sessions;
 		if (copyList == null || copyList.isEmpty())
 			return null;

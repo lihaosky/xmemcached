@@ -53,6 +53,7 @@ import net.rubyeye.xmemcached.impl.MemcachedConnector;
 import net.rubyeye.xmemcached.impl.MemcachedHandler;
 import net.rubyeye.xmemcached.impl.MemcachedTCPSession;
 import net.rubyeye.xmemcached.impl.ReconnectRequest;
+import net.rubyeye.xmemcached.impl.ThreeRandomMemcachedSessionLocator;
 import net.rubyeye.xmemcached.monitor.Constants;
 import net.rubyeye.xmemcached.monitor.MemcachedClientNameHolder;
 import net.rubyeye.xmemcached.monitor.XMemcachedMbeanServer;
@@ -267,11 +268,11 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     }
 
 
-    private final void sendCommand(final Command cmd) throws MemcachedException {
+    private final void sendCommand(final Command cmd, boolean isSet) throws MemcachedException {
         if (this.shutdown) {
             throw new MemcachedException("Xmemcached is stopped");
         }
-        this.connector.send(cmd);
+        this.connector.send(cmd, isSet);
     }
 
 
@@ -578,7 +579,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             final long timeout, Transcoder<T> transcoder) throws InterruptedException, TimeoutException,
             MemcachedException, MemcachedException {
         final Command command = this.commandFactory.createGetCommand(key, keyBytes, cmdType, this.transcoder);
-        this.sendCommand(command);
+        this.sendCommand(command, false);
         this.latchWait(command, timeout);
         command.getIoBuffer().free(); // free buffer
         this.checkException(command);
@@ -748,6 +749,14 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
             new TextCommandFactory(), new SerializingTranscoder());
         this.start0();
+    }
+    
+    public XMemcachedClient(int copyNum) throws IOException {
+    	super();
+    	this.buildConnector(new ThreeRandomMemcachedSessionLocator(copyNum), new SimpleBufferAllocator(),
+                XMemcachedClientBuilder.getDefaultConfiguration(), XMemcachedClientBuilder.getDefaultSocketOptions(),
+                new TextCommandFactory(), new SerializingTranscoder());
+         this.start0();
     }
 
 
@@ -1204,7 +1213,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         final Map<Session, List<String>> catalogMap = new HashMap<Session, List<String>>();
 
         for (String key : keyCollections) {
-            Session index = this.sessionLocator.getSessionByKey(key);
+            Session index = this.sessionLocator.getSessionByKey(key, false);
             if (!catalogMap.containsKey(index)) {
                 List<String> tmpKeys = new ArrayList<String>(100);
                 tmpKeys.add(key);
@@ -1231,7 +1240,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         for (Map.Entry<String, Integer> entry : keyExpMap.entrySet()) {
             final String key = entry.getKey();
             final Integer expTime = entry.getValue();
-            Session index = this.sessionLocator.getSessionByKey(key);
+            Session index = this.sessionLocator.getSessionByKey(key, false);
             if (!catalogMap.containsKey(index)) {
                 Map<String, Integer> tmpKeyExpMap = new HashMap<String, Integer>(100);
                 tmpKeyExpMap.put(key, expTime);
@@ -1249,7 +1258,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
             final CommandType cmdType, final Transcoder<T> transcoder) throws InterruptedException, TimeoutException,
             MemcachedException {
         final Command command = this.commandFactory.createGetMultiCommand(keys, latch, cmdType, transcoder);
-        this.sendCommand(command);
+        this.sendCommand(command, false);
         return command;
     }
 
@@ -1818,7 +1827,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         final byte[] keyBytes = ByteUtils.getBytes(key);
         ByteUtils.checkKey(keyBytes);
         final Command command = this.commandFactory.createDeleteCommand(key, keyBytes, time, noreply);
-        this.sendCommand(command);
+        this.sendCommand(command, false);
         if (!command.isNoreply()) {
             this.latchWait(command, opTimeout);
             command.getIoBuffer().free();
@@ -1851,7 +1860,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         ByteUtils.checkKey(keyBytes);
         CountDownLatch latch = new CountDownLatch(1);
         final Command command = this.commandFactory.createTouchCommand(key, keyBytes, latch, exp, false);
-        this.sendCommand(command);
+        this.sendCommand(command, false);
         this.latchWait(command, opTimeout);
         command.getIoBuffer().free();
         this.checkException(command);
@@ -1952,7 +1961,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
 
         Command resultCommand = new BinaryGetMultiCommand(key, CommandType.GET_MANY, latch);
         resultCommand.setIoBuffer(mergedBuffer);
-        this.sendCommand(resultCommand);
+        this.sendCommand(resultCommand, false);
         return resultCommand;
     }
 
@@ -1971,7 +1980,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         ByteUtils.checkKey(keyBytes);
         CountDownLatch latch = new CountDownLatch(1);
         final Command command = this.commandFactory.createGetAndTouchCommand(key, keyBytes, latch, newExp, false);
-        this.sendCommand(command);
+        this.sendCommand(command, false);
         this.latchWait(command, opTimeout);
         command.getIoBuffer().free();
         this.checkException(command);
@@ -2425,7 +2434,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
         ByteUtils.checkKey(keyBytes);
         final Command command =
                 this.commandFactory.createIncrDecrCommand(key, keyBytes, delta, initValue, exp, cmdType, noreply);
-        this.sendCommand(command);
+        this.sendCommand(command, false);
         if (!command.isNoreply()) {
             this.latchWait(command, operationTimeout);
             command.getIoBuffer().free();
@@ -2508,7 +2517,7 @@ public class XMemcachedClient implements XMemcachedClientMBean, MemcachedClient 
     private final <T> boolean sendStoreCommand(Command command, long timeout) throws InterruptedException,
             TimeoutException, MemcachedException {
 
-        this.sendCommand(command);
+        this.sendCommand(command, true);
         if (!command.isNoreply()) {
             this.latchWait(command, timeout);
             command.getIoBuffer().free();

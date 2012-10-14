@@ -84,7 +84,7 @@ public class LibmemcachedMemcachedSessionLocator extends
 		return sessionList;
 	}
 
-	public final Session getSessionByKey(final String key) {
+	public final Session getSessionByKey(final String key, boolean isSet) {
 		if (this.ketamaSessions == null || this.ketamaSessions.size() == 0) {
 			return null;
 		}
