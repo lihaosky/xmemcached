@@ -1,11 +1,5 @@
 package net.rubyeye.xmemcached.impl;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,8 +22,11 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 	/**
 	 * Store key to multiple server mapping
 	 */
-	private static volatile ConcurrentHashMap<String, Vector<Session>> keySessionMap = new ConcurrentHashMap<String, Vector<Session>>();;
+	private static volatile ConcurrentHashMap<String, Vector<String>> keyHostMap = new ConcurrentHashMap<String, Vector<String>>();;
 
+	private HashMap<String, List<Session>> hostSessionMap;
+	private Vector<String> hosts;
+	
 	/**
 	 * Last session accessed. aka. Last server accessed!
 	 */
@@ -43,11 +40,15 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 	public ThreeRandomMemcachedSessionLocator(int copyNum) {
 		this.hashAlgorighm = HashAlgorithm.NATIVE_HASH;
 		this.copyNum = copyNum;
+		hostSessionMap = new HashMap<String, List<Session>>();
+		hosts = new Vector<String>();
 	}
 
 	public ThreeRandomMemcachedSessionLocator(HashAlgorithm hashAlgorighm, int copyNum) {
 		this.hashAlgorighm = hashAlgorighm;
 		this.copyNum = copyNum;
+		hostSessionMap = new HashMap<String, List<Session>>();
+		hosts = new Vector<String>();
 	}
 	
 	public final void setHashAlgorighm(HashAlgorithm hashAlgorighm) {
@@ -81,17 +82,18 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 		 * Get a key, find random session from key session list
 		 */
 		if (isSet == false) {
-			Vector<Session> sessionVector = keySessionMap.get(key);
-			return sessionVector.get(rand.nextInt(sessionVector.size()));
+			Vector<String> hostVector = keyHostMap.get(key);
+			List<Session> sessions = hostSessionMap.get(hostVector.get(rand.nextInt(hostVector.size())));
+			return sessions.get(rand.nextInt(sessions.size()));
 		} else {
 			/**
 			 * Set a key, find a new session if copyNum is not reached.
 			 */
-			Vector<Session> sessionVector = keySessionMap.get(key);
+			Vector<String> hostVector = keyHostMap.get(key);
 			/**
 			 * Not stored in any session, find a random session
 			 */
-			if (sessionVector == null) {
+			if (hostVector == null) {
 				long start = this.getHash(size, key);
 				List<Session> sessions = sessionList.get((int)start);
 				Session session = getRandomSession(sessions);
@@ -106,23 +108,26 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 					}
 				}
 				
-				sessionVector = new Vector<Session>();
-				sessionVector.add(session);
-				keySessionMap.put(key, sessionVector);
+				
+				hostVector = new Vector<String>();
+				hostVector.add(session.getRemoteSocketAddress().getAddress().getHostAddress());
+				keyHostMap.put(key, hostVector);
 				
 				return session;
-			} else if (sessionVector.size() < copyNum && copyNum <= sessionList.size()) {
-				List<Session> sessions = sessionList.get(rand.nextInt(sessionList.size()));
-				Session session = sessions.get(rand.nextInt(sessions.size()));
-				while (sessionVector.contains(session) == false) {
-					sessions = sessionList.get(rand.nextInt(sessionList.size()));
-					session = sessions.get(rand.nextInt(sessions.size()));
+			} else if (hostVector.size() < copyNum && copyNum <= sessionList.size()) {
+				String hostname = hosts.get(rand.nextInt(hosts.size()));
+				
+				while (hostVector.contains(hostname) == true) {
+					hostname = hosts.get(rand.nextInt(hosts.size()));
 				}
 				
-				sessionVector.add(session);
-				return session;
+				hostVector.add(hostname);
+				List<Session> sessions = hostSessionMap.get(hostname);
+				return sessions.get(rand.nextInt(sessions.size()));
 			} else {
-				return sessionVector.get(rand.nextInt(sessionVector.size()));
+				String hostname = hostVector.get(rand.nextInt(hostVector.size()));
+				List<Session> sessions = hostSessionMap.get(hostname);
+				return sessions.get(rand.nextInt(sessions.size()));
 			}
 		}
 	}
@@ -187,6 +192,9 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 		for (List<Session> sessions : tmpList) {
 			if (sessions != null && !sessions.isEmpty()) {
 				Session session = sessions.get(0);
+				
+				hostSessionMap.put(session.getRemoteSocketAddress().getAddress().getHostAddress(), sessions);
+				hosts.add(session.getRemoteSocketAddress().getAddress().getHostAddress());
 				
 				if (session instanceof MemcachedTCPSession) {
 					int weight = ((MemcachedSession) session).getWeight();
