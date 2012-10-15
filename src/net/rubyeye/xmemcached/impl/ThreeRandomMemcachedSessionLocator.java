@@ -28,7 +28,7 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 	/**
 	 * Store key to multiple server mapping
 	 */
-	private volatile ConcurrentHashMap<String, Vector<Session>> keySessionMap;
+	private static volatile ConcurrentHashMap<String, Vector<Session>> keySessionMap = new ConcurrentHashMap<String, Vector<Session>>();;
 
 	/**
 	 * Last session accessed. aka. Last server accessed!
@@ -43,13 +43,11 @@ public class ThreeRandomMemcachedSessionLocator extends AbstractMemcachedSession
 	public ThreeRandomMemcachedSessionLocator(int copyNum) {
 		this.hashAlgorighm = HashAlgorithm.NATIVE_HASH;
 		this.copyNum = copyNum;
-		keySessionMap = new ConcurrentHashMap<String, Vector<Session>>();
 	}
 
 	public ThreeRandomMemcachedSessionLocator(HashAlgorithm hashAlgorighm, int copyNum) {
 		this.hashAlgorighm = hashAlgorighm;
 		this.copyNum = copyNum;
-		keySessionMap = new ConcurrentHashMap<String, Vector<Session>>();
 	}
 	
 	public final void setHashAlgorighm(HashAlgorithm hashAlgorighm) {
