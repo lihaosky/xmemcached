@@ -2,3 +2,4 @@ target/
 .classpath
 *.class
 bin/makejar.sh
+bin/*
